@@ -1,0 +1,317 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Finde deine Sache jetzt!</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            background: linear-gradient(to top right, blue, white);
+            /* Die folgende Zeile stellt sicher, dass der Hintergrund unter allen anderen Elementen liegt */
+            z-index: -1;
+            position: relative;
+            min-height: 100vh;
+        }
+        h1 {
+            margin-top: 20px;
+            font-size: 2.5em;
+            color: #333;
+            position: relative;
+            z-index: 1; /* Stellt sicher, dass das Element über dem Hintergrund liegt */
+        }
+        .search-container {
+            width: 90%;
+            max-width: 800px;
+            margin: 20px 0;
+            position: relative;
+            z-index: 1; /* Stellt sicher, dass das Element über dem Hintergrund liegt */
+        }
+        .search-input {
+            width: 100%;
+            padding: 15px;
+            font-size: 1.2em;
+            box-sizing: border-box;
+            border: 2px solid #ccc;
+            border-radius: 8px;
+            outline: none;
+        }
+        .form-container {
+            width: 90%;
+            max-width: 600px;
+            margin: 20px 0;
+            padding: 20px;
+            border: 1px solid #ccc;
+            border-radius: 8px;
+            background-color: #fff;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+            position: relative;
+            z-index: 1; /* Stellt sicher, dass das Element über dem Hintergrund liegt */
+        }
+        .form-container input, .form-container textarea {
+            width: 100%;
+            padding: 10px;
+            margin: 10px 0;
+            box-sizing: border-box;
+            border: 1px solid #ccc;
+            border-radius: 8px;
+            outline: none;
+            /* Automatisches Wachstum für lange Texte */
+            overflow: hidden;
+            resize: none;
+        }
+        .form-container textarea {
+            overflow: auto;
+        }
+        .photo-container {
+            position: relative;
+            width: 100%;
+            padding-top: 56.25%; /* 16:9 Aspect Ratio */
+            background-color: #f0f0f0;
+            text-align: center;
+            color: #999;
+            cursor: pointer;
+            border-radius: 8px;
+            border: 1px solid #ccc;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .photo-container video, .photo-container canvas {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            border-radius: 8px;
+        }
+        .photo-container canvas {
+            display: none;
+        }
+        .save-button {
+            display: block;
+            width: 100%;
+            padding: 15px;
+            background-color: #28a745;
+            color: #fff;
+            border: none;
+            font-size: 1.2em;
+            border-radius: 8px;
+            cursor: pointer;
+            outline: none;
+        }
+        .save-button:disabled {
+            background-color: #ccc;
+        }
+        .results-container {
+            width: 90%;
+            max-width: 600px;
+            margin: 20px 0;
+            padding: 20px;
+            box-sizing: border-box;
+            position: relative;
+            z-index: 1; /* Stellt sicher, dass das Element über dem Hintergrund liegt */
+        }
+        .result-item {
+            width: 90%;
+            max-width: 600px;
+            border: 1px solid #ccc;
+            padding: 10px;
+            margin-bottom: 10px;
+            border-radius: 8px;
+            background-color: #fff;
+            position: relative;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+        }
+        .result-item h3 {
+            margin-top: 0;
+        }
+        .delete-button, .info-button {
+            position: absolute;
+            background-color: transparent;
+            border: none;
+            font-size: 1.2em;
+            cursor: pointer;
+            outline: none;
+        }
+        .delete-button {
+            color: red;
+            top: 10px;
+            right: 10px;
+        }
+        .info-button {
+            color: blue;
+            bottom: 10px;
+            left: 10px;
+        }
+        .result-item textarea {
+            /* Verhindert, dass der Text in der Beschreibung einfach abgeschnitten wird */
+            white-space: pre-wrap;
+        }
+    </style>
+</head>
+<body>
+
+<h1>Finde deine Sache jetzt!</h1>
+
+<div class="search-container">
+    <input type="text" id="searchInput" class="search-input" placeholder="Suche nach Überschrift oder Beschreibung...">
+</div>
+
+<div class="form-container" id="formContainer">
+    <input type="text" id="titleInput" placeholder="Überschrift" required>
+    <div class="photo-container" id="photoContainer">
+        <span id="photoPlaceholder">📷 Foto aufnehmen</span>
+        <video id="video" autoplay></video>
+        <canvas id="canvas"></canvas>
+    </div>
+    <textarea id="descriptionInput" placeholder="Beschreibung"></textarea>
+    <button class="save-button" id="saveButton" disabled>Speichern</button>
+</div>
+
+<div class="results-container" id="resultsContainer"></div>
+
+<script>
+    const searchInput = document.getElementById('searchInput');
+    const titleInput = document.getElementById('titleInput');
+    const photoContainer = document.getElementById('photoContainer');
+    const video = document.getElementById('video');
+    const canvas = document.getElementById('canvas');
+    const descriptionInput = document.getElementById('descriptionInput');
+    const saveButton = document.getElementById('saveButton');
+    const resultsContainer = document.getElementById('resultsContainer');
+    const formContainer = document.getElementById('formContainer');
+    const photoPlaceholder = document.getElementById('photoPlaceholder');
+    let stream;
+
+    // Load saved data from localStorage
+    const savedItems = JSON.parse(localStorage.getItem('items')) || [];
+
+    // Display saved items
+    function displayItems(items) {
+        resultsContainer.innerHTML = '';
+        items.forEach((item, index) => {
+            const itemDiv = document.createElement('div');
+            itemDiv.classList.add('result-item');
+            itemDiv.innerHTML = `
+                <button class="delete-button" data-index="${index}">❌</button>
+                <button class="info-button" data-index="${index}">ℹ️</button>
+                <h3>${item.title}</h3>
+                ${item.image ? `<img src="${item.image}" alt="Bild" style="width:100%;">` : ''}
+                <p>${item.description}</p>
+            `;
+            resultsContainer.appendChild(itemDiv);
+        });
+
+        // Add event listeners for delete and info buttons
+        document.querySelectorAll('.delete-button').forEach(button => {
+            button.addEventListener('click', (e) => {
+                const index = e.target.getAttribute('data-index');
+                if (confirm('Möchtest du dieses Element wirklich löschen?')) {
+                    savedItems.splice(index, 1);
+                    localStorage.setItem('items', JSON.stringify(savedItems));
+                    displayItems(savedItems);
+                }
+            });
+        });
+
+        document.querySelectorAll('.info-button').forEach(button => {
+            button.addEventListener('click', (e) => {
+                const index = e.target.getAttribute('data-index');
+                const timestamp = new Date(savedItems[index].timestamp);
+                const formattedTime = `${timestamp.getHours()}:${timestamp.getMinutes()} Uhr`;
+                alert(`Bild erstellt am ${timestamp.toLocaleDateString()} um ${formattedTime}`);
+            });
+        });
+    }
+
+    displayItems(savedItems);
+
+    // Search functionality
+    searchInput.addEventListener('input', () => {
+        const query = searchInput.value.toLowerCase();
+        const filteredItems = savedItems.filter(item => 
+            item.title.toLowerCase().includes(query) || 
+            item.description.toLowerCase().includes(query)
+        );
+        displayItems(filteredItems);
+
+        // Hide the form container when searching
+        if (query) {
+            formContainer.style.display = 'none';
+        } else {
+            formContainer.style.display = 'block';
+        }
+    });
+
+    // Enable save button if title is entered
+    titleInput.addEventListener('input', () => {
+        saveButton.disabled = !titleInput.value.trim();
+    });
+
+    // Handle photo capture
+    photoContainer.addEventListener('click', () => {
+        if (!stream) {
+            navigator.mediaDevices.getUserMedia({ video: true })
+                .then(s => {
+                    stream = s;
+                    video.srcObject = stream;
+                    video.style.display = 'block';
+                    photoPlaceholder.style.display = 'none';
+                })
+                .catch(err => {
+                    alert('Kamera konnte nicht gestartet werden: ' + err);
+                });
+        } else {
+            const context = canvas.getContext('2d');
+            canvas.width = video.videoWidth;
+            canvas.height = video.videoHeight;
+            context.drawImage(video, 0, 0, canvas.width, canvas.height);
+            stream.getTracks().forEach(track => track.stop());
+            stream = null;
+            video.style.display = 'none';
+            canvas.style.display = 'block';
+        }
+    });
+
+    // Save the item
+    saveButton.addEventListener('click', () => {
+        const title = titleInput.value.trim();
+        const description = descriptionInput.value.trim();
+        let image = '';
+        if (canvas.style.display === 'block') {
+            image = canvas.toDataURL('image/png');
+        }
+
+        if (title) {
+            const newItem = { title, description, image, timestamp: new Date() };
+            savedItems.push(newItem);
+            localStorage.setItem('items', JSON.stringify(savedItems));
+            displayItems(savedItems);
+
+            // Reset form
+            titleInput.value = '';
+            descriptionInput.value = '';
+            canvas.style.display = 'none';
+            photoPlaceholder.style.display = 'block';
+            saveButton.disabled = true;
+        }
+    });
+
+    // Automatically adjust textarea height
+    document.querySelectorAll('textarea').forEach(textarea => {
+        textarea.addEventListener('input', () => {
+            textarea.style.height = 'auto';
+            textarea.style.height = (textarea.scrollHeight) + 'px';
+        });
+    });
+</script>
+
+</body>
+</html>
