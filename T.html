@@ -1,0 +1,484 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Finde deine Sache jetzt!</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            background: linear-gradient(to top right, var(--color1), var(--color2));
+            background-attachment: fixed;
+        }
+        h1 {
+            margin-top: 20px;
+            font-size: 2.5em;
+            color: #333;
+            position: relative;
+        }
+        .search-container {
+            width: 90%;
+            max-width: 800px;
+            margin: 20px 0;
+        }
+        .search-input {
+            width: 100%;
+            padding: 15px;
+            font-size: 1.2em;
+            box-sizing: border-box;
+            border: 2px solid #ccc;
+            border-radius: 8px;
+            outline: none;
+        }
+        .form-container {
+            width: 90%;
+            max-width: 600px;
+            margin: 20px 0;
+            padding: 20px;
+            border: 1px solid #ccc;
+            border-radius: 8px;
+            background-color: #fff;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+            position: relative;
+        }
+        .form-container input, .form-container textarea {
+            width: 100%;
+            padding: 10px;
+            margin: 10px 0;
+            box-sizing: border-box;
+            border: 1px solid #ccc;
+            border-radius: 8px;
+            outline: none;
+        }
+        .photo-container {
+            position: relative;
+            width: 100%;
+            padding-top: 56.25%; /* 16:9 Aspect Ratio */
+            background-color: #f0f0f0;
+            text-align: center;
+            color: #999;
+            cursor: pointer;
+            border-radius: 8px;
+            border: 1px solid #ccc;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .photo-container video, .photo-container canvas {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            border-radius: 8px;
+        }
+        .photo-container canvas {
+            display: none;
+        }
+        .save-button {
+            display: block;
+            width: 100%;
+            padding: 15px;
+            background-color: #28a745;
+            color: #fff;
+            border: none;
+            font-size: 1.2em;
+            border-radius: 8px;
+            cursor: pointer;
+            outline: none;
+        }
+        .save-button:disabled {
+            background-color: #ccc;
+        }
+        .results-container {
+            width: 90%;
+            max-width: 600px;
+            margin: 20px 0;
+            padding: 20px;
+            box-sizing: border-box;
+        }
+        .result-item {
+            width: 90%;
+            max-width: 600px;
+            border: 1px solid #ccc;
+            padding: 10px;
+            margin-bottom: 10px;
+            border-radius: 8px;
+            background-color: #fff;
+            position: relative;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+        }
+        .result-item h3 {
+            margin-top: 0;
+        }
+        .delete-button {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            background-color: transparent;
+            color: red;
+            border: none;
+            font-size: 1.2em;
+            cursor: pointer;
+            outline: none;
+        }
+        .info-button {
+            position: absolute;
+            bottom: 10px;
+            left: 10px;
+            background-color: transparent;
+            color: blue;
+            border: none;
+            font-size: 1.2em;
+            cursor: pointer;
+            outline: none;
+        }
+        #manageDataButton {
+            display: block;
+            width: 90%;
+            max-width: 600px;
+            padding: 15px;
+            margin: 20px 0;
+            background-color: #007bff;
+            color: #fff;
+            border: none;
+            font-size: 1.2em;
+            border-radius: 8px;
+            cursor: pointer;
+            outline: none;
+        }
+        #exportOptions, #importDataButton {
+            display: none;
+            width: 90%;
+            max-width: 600px;
+            padding: 15px;
+            margin: 10px 0;
+            background-color: #17a2b8;
+            color: #fff;
+            border: none;
+            font-size: 1.2em;
+            border-radius: 8px;
+            cursor: pointer;
+            outline: none;
+        }
+        #settingsButton {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            background-color: transparent;
+            color: #333;
+            border: none;
+            font-size: 1.5em;
+            cursor: pointer;
+            outline: none;
+        }
+        #settingsMenu {
+            display: none;
+            position: absolute;
+            top: 40px;
+            right: 10px;
+            background-color: #fff;
+            border: 1px solid #ccc;
+            border-radius: 8px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+            width: 250px;
+            padding: 10px;
+        }
+        #settingsMenu label {
+            display: block;
+            margin-bottom: 10px;
+        }
+    </style>
+</head>
+<body>
+
+<h1>Finde deine Sache jetzt!</h1>
+<button id="settingsButton">⚙️</button>
+<div id="settingsMenu">
+    <label>
+        Kameraauswahl:
+        <select id="cameraSelect">
+            <option value="user">Frontkamera</option>
+            <option value="environment">Hinterkamera</option>
+        </select>
+    </label>
+    <label>
+        Farbe 1:
+        <input type="color" id="color1">
+    </label>
+    <label>
+        Farbe 2:
+        <input type="color" id="color2">
+    </label>
+</div>
+
+<div class="search-container">
+    <input type="text" id="searchInput" class="search-input" placeholder="Suche nach Überschrift oder Beschreibung...">
+</div>
+
+<div class="form-container" id="formContainer">
+    <input type="text" id="titleInput" placeholder="Überschrift" required>
+    <div class="photo-container" id="photoContainer">
+        <span id="photoPlaceholder">📷 Foto aufnehmen</span>
+        <video id="video" autoplay></video>
+        <canvas id="canvas"></canvas>
+    </div>
+    <textarea id="descriptionInput" placeholder="Beschreibung"></textarea>
+    <button class="save-button" id="saveButton" disabled>Speichern</button>
+</div>
+
+<div class="results-container" id="resultsContainer"></div>
+
+<button id="manageDataButton">Daten Verwalten</button>
+<div id="exportOptions">
+    <button id="downloadButton">Download</button>
+    <button id="whatsappButton">WhatsApp</button>
+</div>
+<input type="file" id="fileInput" style="display:none;">
+<button id="importDataButton">Daten Importieren</button>
+
+<script>
+    const searchInput = document.getElementById('searchInput');
+    const titleInput = document.getElementById('titleInput');
+    const photoContainer = document.getElementById('photoContainer');
+    const video = document.getElementById('video');
+    const canvas = document.getElementById('canvas');
+    const photoPlaceholder = document.getElementById('photoPlaceholder');
+    const descriptionInput = document.getElementById('descriptionInput');
+    const saveButton = document.getElementById('saveButton');
+    const resultsContainer = document.getElementById('resultsContainer');
+    const formContainer = document.getElementById('formContainer');
+    const manageDataButton = document.getElementById('manageDataButton');
+    const exportOptions = document.getElementById('exportOptions');
+    const downloadButton = document.getElementById('downloadButton');
+    const whatsappButton = document.getElementById('whatsappButton');
+    const importDataButton = document.getElementById('importDataButton');
+    const fileInput = document.getElementById('fileInput');
+    const settingsButton = document.getElementById('settingsButton');
+    const settingsMenu = document.getElementById('settingsMenu');
+    const cameraSelect = document.getElementById('cameraSelect');
+    const color1Input = document.getElementById('color1');
+    const color2Input = document.getElementById('color2');
+
+    let stream;
+    let savedItems = JSON.parse(localStorage.getItem('items')) || [];
+    let settings = JSON.parse(localStorage.getItem('settings')) || {
+        camera: 'user',
+        color1: '#0000ff',
+        color2: '#ffffff'
+    };
+
+    // Apply saved settings
+    cameraSelect.value = settings.camera;
+    color1Input.value = settings.color1;
+    color2Input.value = settings.color2;
+    document.documentElement.style.setProperty('--color1', settings.color1);
+    document.documentElement.style.setProperty('--color2', settings.color2);
+
+    settingsButton.addEventListener('click', () => {
+        settingsMenu.style.display = settingsMenu.style.display === 'block' ? 'none' : 'block';
+    });
+
+    cameraSelect.addEventListener('change', () => {
+        settings.camera = cameraSelect.value;
+        localStorage.setItem('settings', JSON.stringify(settings));
+    });
+
+    color1Input.addEventListener('input', () => {
+        settings.color1 = color1Input.value;
+        document.documentElement.style.setProperty('--color1', settings.color1);
+        localStorage.setItem('settings', JSON.stringify(settings));
+    });
+
+    color2Input.addEventListener('input', () => {
+        settings.color2 = color2Input.value;
+        document.documentElement.style.setProperty('--color2', settings.color2);
+        localStorage.setItem('settings', JSON.stringify(settings));
+    });
+
+    function displayItems(items) {
+        resultsContainer.innerHTML = '';
+        items.forEach((item, index) => {
+            const itemDiv = document.createElement('div');
+            itemDiv.classList.add('result-item');
+            itemDiv.innerHTML = `
+                <button class="delete-button" data-index="${index}">❌</button>
+                <button class="info-button" data-index="${index}">ℹ️</button>
+                <h3>${item.title}</h3>
+                ${item.image ? `<img src="${item.image}" alt="Bild" style="width:100%;">` : ''}
+                <p>${item.description}</p>
+            `;
+            resultsContainer.insertBefore(itemDiv, resultsContainer.firstChild);
+        });
+
+        // Add event listeners for delete and info buttons
+        document.querySelectorAll('.delete-button').forEach(button => {
+            button.addEventListener('click', (e) => {
+                const index = e.target.getAttribute('data-index');
+                if (confirm('Möchtest du dieses Element wirklich löschen?')) {
+                    savedItems.splice(index, 1);
+                    localStorage.setItem('items', JSON.stringify(savedItems));
+                    displayItems(savedItems);
+                }
+            });
+        });
+
+        document.querySelectorAll('.info-button').forEach(button => {
+            button.addEventListener('click', (e) => {
+                const index = e.target.getAttribute('data-index');
+                const item = savedItems[index];
+                alert(`Bild erstellt am: ${item.date}`);
+            });
+        });
+    }
+
+    displayItems(savedItems);
+
+    searchInput.addEventListener('input', () => {
+        const query = searchInput.value.toLowerCase();
+        const filteredItems = savedItems.filter(item => 
+            item.title.toLowerCase().includes(query) || 
+            item.description.toLowerCase().includes(query)
+        );
+        displayItems(filteredItems);
+
+        // Hide the form container when searching
+        if (query) {
+            formContainer.style.display = 'none';
+        } else {
+            formContainer.style.display = 'block';
+        }
+    });
+
+    titleInput.addEventListener('input', () => {
+        saveButton.disabled = !titleInput.value.trim();
+    });
+
+    photoContainer.addEventListener('click', () => {
+        if (!stream) {
+            navigator.mediaDevices.getUserMedia({ video: { facingMode: settings.camera } })
+                .then(s => {
+                    stream = s;
+                    video.srcObject = stream;
+                    video.style.display = 'block';
+                    photoPlaceholder.style.display = 'none';
+                })
+                .catch(err => {
+                    alert('Kamera konnte nicht gestartet werden: ' + err);
+                });
+        } else {
+            const context = canvas.getContext('2d');
+            canvas.width = video.videoWidth;
+            canvas.height = video.videoHeight;
+            context.drawImage(video, 0, 0, canvas.width, canvas.height);
+            stream.getTracks().forEach(track => track.stop());
+            stream = null;
+            video.style.display = 'none';
+            canvas.style.display = 'block';
+        }
+    });
+
+    saveButton.addEventListener('click', () => {
+        const title = titleInput.value.trim();
+        const description = descriptionInput.value.trim();
+        let image = '';
+        if (canvas.style.display === 'block') {
+            image = canvas.toDataURL('image/png');
+        }
+
+        if (title) {
+            const date = new Date().toLocaleString('de-DE', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' }).replace(',', ' um') + ' Uhr';
+            const newItem = { title, description, image, date };
+            savedItems.push(newItem);
+            localStorage.setItem('items', JSON.stringify(savedItems));
+            displayItems(savedItems);
+
+            // Reset form
+            titleInput.value = '';
+            descriptionInput.value = '';
+            canvas.style.display = 'none';
+            photoPlaceholder.style.display = 'block';
+            saveButton.disabled = true;
+        }
+    });
+
+    manageDataButton.addEventListener('click', () => {
+        exportOptions.style.display = exportOptions.style.display === 'block' ? 'none' : 'block';
+    });
+
+    downloadButton.addEventListener('click', () => {
+        const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(savedItems));
+        const downloadAnchorNode = document.createElement('a');
+        downloadAnchorNode.setAttribute("href", dataStr);
+        downloadAnchorNode.setAttribute("download", "items.json");
+        document.body.appendChild(downloadAnchorNode);
+        downloadAnchorNode.click();
+        downloadAnchorNode.remove();
+    });
+
+    whatsappButton.addEventListener('click', () => {
+        const dataStr = JSON.stringify(savedItems);
+        const blob = new Blob([dataStr], { type: 'application/json' });
+        const url = URL.createObjectURL(blob);
+        const whatsappUrl = `https://api.whatsapp.com/send?text=https://brunoonlinebraun.github.io/Suchleiste/T.html`;
+
+        const whatsappAnchorNode = document.createElement('a');
+        whatsappAnchorNode.setAttribute("href", whatsappUrl);
+        whatsappAnchorNode.setAttribute("target", "_blank");
+        document.body.appendChild(whatsappAnchorNode);
+        whatsappAnchorNode.click();
+        whatsappAnchorNode.remove();
+
+        setTimeout(() => {
+            window.location.href = url;
+        }, 2000);
+    });
+
+    importDataButton.addEventListener('click', () => {
+        fileInput.click();
+    });
+
+    fileInput.addEventListener('change', (event) => {
+        const file = event.target.files[0];
+        if (file) {
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                const importedItems = JSON.parse(e.target.result);
+                savedItems = importedItems;
+                localStorage.setItem('items', JSON.stringify(savedItems));
+                displayItems(savedItems);
+            };
+            reader.readAsText(file);
+        }
+    });
+
+    // Drag and drop for file input
+    importDataButton.addEventListener('dragover', (e) => {
+        e.preventDefault();
+    });
+
+    importDataButton.addEventListener('drop', (e) => {
+        e.preventDefault();
+        const file = e.dataTransfer.files[0];
+        if (file) {
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                const importedItems = JSON.parse(e.target.result);
+                savedItems = importedItems;
+                localStorage.setItem('items', JSON.stringify(savedItems));
+                displayItems(savedItems);
+            };
+            reader.readAsText(file);
+        }
+    });
+
+</script>
+
+</body>
+</html>
